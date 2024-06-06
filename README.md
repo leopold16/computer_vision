@@ -29,6 +29,22 @@ Similarly, displaying a video as a heatmap gave insights into the location withi
 
 <img width="412" alt="Screenshot 2024-06-06 at 14 52 22" src="https://github.com/leopold16/computer_vision/assets/123328956/2e3bc5d3-166e-40a0-a5eb-1ee6e3b08b24">
 
-## 1.3 Conversion Rates 
+## 1.3 Average Time Spent in Store 
+
+The first algorithm developed attempts to make sense of the customer's time spent in the store. After conceptual analysis, the team decided that the algorithm was not beneficial for thorough analysis. Mainly, brief entries into the store (eg. delivery workers or potential customers peeking in) would alter the averages drastically. 
+
+## 1.4 Conversion Rates 
+
+As such, the idea of the conversion rate algorithm was born. I created two polygons that separated the viewable area into two different polygons. The 'entrance' polygon would keep track of the customers who entered the store. The 'store' polygon would keep track of the customers that entered the store from the 'entrance' area and thus successfully 'converted' into the store. 
+
+Notice how the upper left corner shows the conversion rates. This is highly critical in analyzing the percentage of potential customers that enter the store.
+Increasing the percentage of conversion would automatically result in increased sales and customer traffic. 
+
+<img width="427" alt="Screenshot 2024-06-06 at 16 08 12" src="https://github.com/leopold16/computer_vision/assets/123328956/a809e201-5d26-4812-8e8e-fbbca6bb74d8">
+
+
+
+
+
 
 
