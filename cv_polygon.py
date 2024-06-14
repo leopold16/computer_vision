@@ -9,7 +9,7 @@ project = rf.workspace().project("human-counter-btofl")
 model = project.version("1").model
 
 # Path to the pre-recorded video file
-video_path = '/Users/leopold/venv/sample3.mp4'
+video_path = '/Users/leopold/computer_vision-1/sample3.mp4'
 
 # Initialize the video capture object
 cap = cv2.VideoCapture(video_path)
