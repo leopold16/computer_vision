@@ -1,6 +1,7 @@
 import cv2
 import time
 import numpy as np
+import subprocess
 from roboflow import Roboflow
 
 # Initialize Roboflow
@@ -8,19 +9,28 @@ rf = Roboflow(api_key="b965xH5DvvHRHYj8a9xh")
 project = rf.workspace().project("human-counter-btofl")
 model = project.version("1").model
 
-# Path to the pre-recorded video file
-video_path = '/Users/leopold/computer_vision-1/sample3.mp4'
+# Entry polygon points (this is for live stream, and may need to be adjusted for other formats)
+entry_polygon_points = np.array([
+    [1906, 1856], 
+    [1905, 1477], 
+    [1709, 1468], 
+    [1546, 871], 
+    [907, 903], 
+    [947, 1992], 
+    [1905, 1862]
+])
 
-# Initialize the video capture object
-cap = cv2.VideoCapture(video_path)
-
-if not cap.isOpened():
-    print("Error: Could not open video file.")
-    exit()
-
-# Define the points of the polygons
-entry_polygon_points = np.array([[324, 354], [342, 770], [754, 754], [736, 337], [324, 352]])
-store_polygon_points = np.array([[594, 117], [655, 276], [727, 755], [873, 645], [796, 157], [595, 113]])
+store_polygon_points = np.array([
+    [1553, 853], 
+    [1725, 1632], 
+    [2197, 1560], 
+    [2211, 723], 
+    [1862, 664], 
+    [1726, 373], 
+    [1512, 374], 
+    [1615, 732], 
+    [1552, 860]
+])
 
 # Initialize list to keep track of trackers and displayed customers
 trackers = []
@@ -47,12 +57,44 @@ def is_overlapping(bbox1, bbox2):
         return True
     return False
 
-while True:
-    # Read the next frame
-    ret, frame = cap.read()
+def fetch_latest_image():
+    retries = 5
+    for attempt in range(retries):
+        # Use lftp to fetch the latest image from the FTP server
+        result = subprocess.run(
+            ["lftp", "ftp://aibot:Food1234!@178.62.8.167", "-e", "set ssl:verify-certificate no; set xfer:clobber yes; cd files; mv image.jpg imaged.jpg; mget imaged.jpg; bye"],
+            capture_output=True
+        )
+        if result.returncode != 0:
+            print(f"Error: Could not fetch the latest image (attempt {attempt + 1}/{retries}).")
+            continue
 
-    if not ret:
-        print("Error: Could not read frame or end of video.")
+        # Check if the image is complete by trying to load it
+        try:
+            img = cv2.imread("imaged.jpg")
+            if img is None or img.size == 0:
+                raise ValueError("Image is empty or corrupted.")
+            return "imaged.jpg"
+        except Exception as e:
+            print(f"Error: {e} (attempt {attempt + 1}/{retries}).")
+
+        # Wait before retrying
+        time.sleep(1)
+
+    print("Error: Failed to fetch a complete image after multiple attempts.")
+    return None
+
+while True:
+    # Fetch the latest image
+    image_path = fetch_latest_image()
+    if image_path is None:
+        print("Error: Could not fetch the latest image.")
+        break
+
+    # Read the image into OpenCV
+    frame = cv2.imread(image_path)
+    if frame is None:
+        print("Error: Could not read the image.")
         break
 
     # Convert the frame to RGB
@@ -172,5 +214,4 @@ print(f'Total number of customers entered the store: {store_entry_count}')
 print(f'Percentage of customers who entered the store: {store_entry_percentage:.2f}%')
 
 # Release the video capture object
-cap.release()
 cv2.destroyAllWindows()
