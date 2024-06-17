@@ -3,11 +3,12 @@ import time
 import numpy as np
 import subprocess
 from roboflow import Roboflow
+import threading
 
 # Initialize Roboflow
 rf = Roboflow(api_key="b965xH5DvvHRHYj8a9xh")
 project = rf.workspace().project("human-counter-btofl")
-model = project.version("1").model
+model = project.version("3").model
 
 # Entry polygon points (this is for live stream, and may need to be adjusted for other formats)
 entry_polygon_points = np.array([
@@ -47,7 +48,10 @@ store_entry_count = 0
 recent_detections = []
 
 # Time window in seconds to ignore new detections
-time_window = 2  # Adjust as needed
+time_window = 0.25  # Adjust as needed
+
+# Flag to indicate if fetching is done
+fetch_done = False
 
 def is_overlapping(bbox1, bbox2):
     x1, y1, w1, h1 = bbox1
@@ -58,51 +62,34 @@ def is_overlapping(bbox1, bbox2):
     return False
 
 def fetch_latest_image():
-    retries = 5
-    for attempt in range(retries):
-        # Use lftp to fetch the latest image from the FTP server
+    global fetch_done
+    while not fetch_done:
         result = subprocess.run(
-            ["lftp", "ftp://aibot:Food1234!@178.62.8.167", "-e", "set ssl:verify-certificate no; set xfer:clobber yes; cd files; mv image.jpg imaged.jpg; mget imaged.jpg; bye"],
+            ["curl", "-o", "image.jpg", "ftp://aibot:Food1234!@178.62.8.167/files/image.jpg"],
             capture_output=True
         )
         if result.returncode != 0:
-            print(f"Error: Could not fetch the latest image (attempt {attempt + 1}/{retries}).")
-            continue
+            print("Error: Could not fetch the latest image.")
+            fetch_done = True
+            return None
+        time.sleep(0.1)  # Sleep a bit to prevent overloading the server
 
-        # Check if the image is complete by trying to load it
-        try:
-            img = cv2.imread("imaged.jpg")
-            if img is None or img.size == 0:
-                raise ValueError("Image is empty or corrupted.")
-            return "imaged.jpg"
-        except Exception as e:
-            print(f"Error: {e} (attempt {attempt + 1}/{retries}).")
-
-        # Wait before retrying
-        time.sleep(1)
-
-    print("Error: Failed to fetch a complete image after multiple attempts.")
-    return None
+fetch_thread = threading.Thread(target=fetch_latest_image)
+fetch_thread.start()
 
 while True:
-    # Fetch the latest image
-    image_path = fetch_latest_image()
-    if image_path is None:
-        print("Error: Could not fetch the latest image.")
-        break
-
     # Read the image into OpenCV
-    frame = cv2.imread(image_path)
+    frame = cv2.imread("image.jpg")
     if frame is None:
         print("Error: Could not read the image.")
-        break
+        continue
 
     # Convert the frame to RGB
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     # Perform object detection
     try:
-        predictions = model.predict(rgb_frame, confidence=40, overlap=30).json()
+        predictions = model.predict(rgb_frame, confidence=20, overlap=50).json()
     except Exception as e:
         print(f"Error during model prediction: {e}")
         continue
@@ -161,6 +148,7 @@ while True:
             color = (255, 0, 0)  # Blue for other classes
             label = class_name
 
+        # Always display the bounding box for customers
         cv2.rectangle(frame, p1, p2, color, 2)
         cv2.putText(frame, label, (p1[0], p1[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
@@ -206,6 +194,7 @@ while True:
 
     # Press 'q' to quit
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        fetch_done = True
         break
 
 # Print the total number of customers detected and the percentage that entered the store
