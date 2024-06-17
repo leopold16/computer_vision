@@ -65,15 +65,15 @@ def fetch_latest_image():
     global fetch_done
     while not fetch_done:
         result = subprocess.run(
-            ["curl", "-o", "image.jpg", "ftp://aibot:Food1234!@178.62.8.167/files/image.jpg"],
+            ["lftp", "ftp://aibot:Food1234!@178.62.8.167", "-e", "set ssl:verify-certificate no; set xfer:clobber yes; cd files; mget image.jpg; bye"],
             capture_output=True
         )
         if result.returncode != 0:
             print("Error: Could not fetch the latest image.")
             fetch_done = True
             return None
-        time.sleep(0.1)  # Sleep a bit to prevent overloading the server
-
+        time.sleep(0.1)  
+        
 fetch_thread = threading.Thread(target=fetch_latest_image)
 fetch_thread.start()
 
