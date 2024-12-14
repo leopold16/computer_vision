@@ -1,4 +1,4 @@
-# Computer Vision for In-Store Customer Analysis for Kaikaku
+# Computer Vision for In-Store Customer Analysis
 
 ## Overview
 The tasks of this project were as follows: to become familiar with the Yolov8 computer vision model and to utilize its built-in capabilities to create a dataset that can distinguish between customers and employees. Customers are relatively simple for a computer program to distinguish from workers, as all workers wear a green hat. After attempting automatic labeling of ‘person’ objects wearing green hats, I achieved limited results. Consequently, I manually labeled around 441 image frames from CCTV footage and mirrored them to obtain a training set of 674 images. 
